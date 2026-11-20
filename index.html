@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Direktori Toko Pi — Temukan Toko yang Menerima Pi</title>
 <meta name="description" content="Direktori toko dan UMKM yang menerima pembayaran Pi. Cari toko berdasarkan kota, lihat detail dan kontak, dan temukan penjual Pi di dekatmu.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.minepi.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://socialchain.app https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com">
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <style>
@@ -225,21 +226,61 @@ qEl.addEventListener('input', render);
 cityEl.addEventListener('change', render);
 fillCities(); fillChips(); render();
 
-// --- Pi SDK: login dengan Pi (aktif penuh di dalam Pi Browser) ---
+// --- Pi Network authentication ---
+// STEP 1: sign in with the Pi SDK in the browser and keep the accessToken.
+// STEP 2: exchange that accessToken with App Studio; the uid/username it
+// returns are the only identity this app trusts (never the browser-side
+// values from Pi.authenticate). Static frontend: the exchange runs straight
+// from the browser and the sessionToken is kept in memory only.
+const APP_STUDIO_LOGIN_URL = "https://backend.appstudio-u7cm9zhmha0ruwv8.piappengine.com/pi/auth/v1/login";
 const piUserEl = document.getElementById('piUser');
 const loginBtn = document.getElementById('loginBtn');
-let piReady = false;
-try {
-  if (window.Pi) { Pi.init({ version: "2.0", sandbox: false }); piReady = true; }
-} catch(e) { piReady = false; }
+let piSession = null; // { sessionToken, user: { uid, username } } — memory only
+
+function onIncompletePaymentFound(payment) {
+  // Direktori Toko Pi belum menerima pembayaran; tidak ada yang diselesaikan di sini.
+  console.log("Incomplete payment found (diabaikan):", payment && payment.identifier);
+}
+
+let piInitPromise = null;
+function ensurePiInit() {
+  if (!piInitPromise) {
+    piInitPromise = (async () => {
+      if (!window.Pi) throw new Error("Pi SDK belum termuat");
+      await Pi.init({ version: "2.0" });
+    })();
+  }
+  return piInitPromise;
+}
+
 loginBtn.onclick = async () => {
-  if (!piReady) { piUserEl.textContent = "Buka lewat Pi Browser untuk masuk dengan akun Pi."; return; }
   try {
-    const auth = await Pi.authenticate(['username'], (payment)=>{});
-    piUserEl.textContent = "Halo, @" + auth.user.username + " — selamat datang di Direktori Toko Pi!";
+    await ensurePiInit();
+  } catch(e) {
+    piUserEl.textContent = "Buka lewat Pi Browser untuk masuk dengan akun Pi.";
+    return;
+  }
+  loginBtn.disabled = true;
+  piUserEl.textContent = "Menghubungkan ke Pi…";
+  try {
+    // STEP 1 — browser sign-in; keep only the accessToken.
+    const auth = await Pi.authenticate(["username"], onIncompletePaymentFound);
+    const accessToken = auth.accessToken;
+    // STEP 2 — exchange with App Studio; trust only its returned identity.
+    const res = await fetch(APP_STUDIO_LOGIN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessToken })
+    });
+    if (!res.ok) throw new Error("App Studio login HTTP " + res.status);
+    const data = await res.json();
+    piSession = { sessionToken: data.sessionToken, user: data.user };
+    piUserEl.textContent = "Halo, @" + piSession.user.username + " — selamat datang di Direktori Toko Pi!";
     loginBtn.style.display = 'none';
   } catch(e) {
+    console.error("Pi login gagal:", e);
     piUserEl.textContent = "Login Pi belum berhasil. Coba lagi di dalam Pi Browser.";
+    loginBtn.disabled = false;
   }
 };
 </script>
