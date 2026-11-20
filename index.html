@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Direktori Toko Pi — Temukan Toko yang Menerima Pi</title>
+<meta name="description" content="Direktori toko dan UMKM yang menerima pembayaran Pi. Cari toko berdasarkan kota, lihat detail dan kontak, dan temukan penjual Pi di dekatmu.">
+<link rel="icon" type="image/png" href="logo.png">
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<style>
+  :root{
+    --purple:#5b21b6; --purple-dark:#3b0764; --purple-mid:#7c3aed;
+    --gold:#f5b921; --gold-dark:#d97706;
+    --bg:#faf7ff; --card:#ffffff; --text:#1e1b2e; --muted:#6b7280;
+    --border:#e9e2f7; --radius:16px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh;}
+  header{background:linear-gradient(135deg,var(--purple-dark),var(--purple) 55%,var(--purple-mid)); color:#fff; padding:28px 16px 56px; text-align:center; position:relative; overflow:hidden;}
+  header .logo{width:84px; height:84px; border-radius:22px; box-shadow:0 8px 24px rgba(0,0,0,.35); margin-bottom:10px;}
+  header h1{font-size:1.7rem; letter-spacing:.3px;}
+  header h1 .pi{color:var(--gold);}
+  header p{opacity:.92; font-size:.95rem; margin-top:6px; max-width:520px; margin-left:auto; margin-right:auto;}
+  #piUser{margin-top:12px; font-size:.85rem; min-height:1.2em;}
+  #loginBtn{margin-top:8px; background:var(--gold); color:#3b0764; border:none; padding:9px 20px; border-radius:999px; font-weight:700; cursor:pointer; font-size:.9rem;}
+  #loginBtn:hover{background:#ffc93c;}
+  .wrap{max-width:1024px; margin:0 auto; padding:0 16px 48px;}
+  .searchbar{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:0 10px 30px rgba(91,33,182,.12); padding:16px; margin-top:-36px; position:relative; z-index:2;}
+  .searchbar .row{display:flex; gap:10px; flex-wrap:wrap;}
+  .searchbar input[type=text]{flex:2 1 220px; padding:12px 14px; border:1.5px solid var(--border); border-radius:12px; font-size:1rem; outline:none;}
+  .searchbar select{flex:1 1 150px; padding:12px; border:1.5px solid var(--border); border-radius:12px; font-size:1rem; background:#fff; outline:none;}
+  .searchbar input:focus,.searchbar select:focus{border-color:var(--purple-mid);}
+  .chips{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+  .chip{border:1.5px solid var(--border); background:#fff; padding:6px 14px; border-radius:999px; cursor:pointer; font-size:.85rem; font-weight:600; color:var(--purple-dark);}
+  .chip.active{background:var(--purple); color:#fff; border-color:var(--purple);}
+  .toolbar{display:flex; justify-content:space-between; align-items:center; margin:26px 0 14px; gap:10px; flex-wrap:wrap;}
+  .toolbar h2{font-size:1.15rem; color:var(--purple-dark);}
+  .toolbar .count{color:var(--muted); font-size:.9rem;}
+  #addBtn{background:var(--purple); color:#fff; border:none; padding:10px 18px; border-radius:999px; font-weight:700; cursor:pointer; font-size:.9rem;}
+  #addBtn:hover{background:var(--purple-mid);}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; cursor:pointer; transition:transform .15s, box-shadow .15s;}
+  .card:hover{transform:translateY(-3px); box-shadow:0 12px 28px rgba(91,33,182,.14);}
+  .card .top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .card h3{font-size:1.05rem; color:var(--purple-dark);}
+  .badge{background:#fef3c7; color:var(--gold-dark); border:1px solid #fde68a; font-size:.72rem; font-weight:800; padding:3px 9px; border-radius:999px; white-space:nowrap;}
+  .badge.demo{background:#ede9fe; color:var(--purple); border-color:#ddd6fe;}
+  .meta{color:var(--muted); font-size:.85rem; margin:6px 0;}
+  .desc{font-size:.92rem; line-height:1.45; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
+  .cat{display:inline-block; margin-top:10px; font-size:.78rem; font-weight:700; color:var(--purple); background:#f3efff; padding:4px 10px; border-radius:8px;}
+  .empty{text-align:center; color:var(--muted); padding:48px 16px; font-size:1rem;}
+  dialog{border:none; border-radius:20px; padding:0; max-width:520px; width:calc(100% - 32px); box-shadow:0 24px 60px rgba(0,0,0,.3);}
+  dialog::backdrop{background:rgba(30,10,60,.55);}
+  .modal{padding:24px;}
+  .modal h3{color:var(--purple-dark); font-size:1.25rem; margin-bottom:4px;}
+  .modal .meta{margin-bottom:10px;}
+  .modal p{line-height:1.55; font-size:.95rem;}
+  .modal .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+  .btn{flex:1; text-align:center; padding:11px; border-radius:12px; font-weight:700; text-decoration:none; cursor:pointer; border:none; font-size:.95rem;}
+  .btn-wa{background:#22c55e; color:#fff;}
+  .btn-close{background:#f3f4f6; color:var(--text);}
+  form .field{margin-bottom:12px;}
+  form label{display:block; font-size:.85rem; font-weight:700; margin-bottom:5px; color:var(--purple-dark);}
+  form input, form select, form textarea{width:100%; padding:11px 12px; border:1.5px solid var(--border); border-radius:10px; font-size:.95rem; font-family:inherit; outline:none;}
+  form input:focus, form select:focus, form textarea:focus{border-color:var(--purple-mid);}
+  .note{background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:12px; padding:10px 14px; font-size:.85rem; margin-top:22px; line-height:1.5;}
+  footer{text-align:center; color:var(--muted); font-size:.85rem; padding:10px 16px 34px;}
+  footer .pi{color:var(--purple); font-weight:800;}
+</style>
+</head>
+<body>
+<header>
+  <img class="logo" src="logo.png" alt="Logo Direktori Toko Pi">
+  <h1>Direktori Toko <span class="pi">Pi</span></h1>
+  <p>Temukan toko dan UMKM yang menerima pembayaran Pi di kotamu. Dukung sesama Pioneer, belanja pakai Pi.</p>
+  <div id="piUser"></div>
+  <button id="loginBtn" type="button">Masuk dengan Pi</button>
+</header>
+
+<div class="wrap">
+  <div class="searchbar">
+    <div class="row">
+      <input type="text" id="q" placeholder="Cari nama toko, produk, atau kata kunci…">
+      <select id="city"><option value="">Semua Kota</option></select>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="toolbar">
+    <div>
+      <h2>Daftar Toko</h2>
+      <span class="count" id="count"></span>
+    </div>
+    <button id="addBtn" type="button">+ Daftarkan Toko</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>Tidak ada toko yang cocok dengan pencarianmu. Coba kata kunci atau kota lain.</div>
+
+  <div class="note">Catatan: sebagian daftar di halaman ini adalah <b>data contoh</b> untuk tampilan awal direktori. Toko yang kamu daftarkan lewat tombol di atas tersimpan di perangkatmu dan langsung tampil di daftar. Verifikasi selalu pembayaran Pi-mu di aplikasi Pi resmi.</div>
+</div>
+
+<footer>Direktori Toko Pi — dibangun untuk komunitas Pioneer Indonesia · <span class="pi">π</span></footer>
+
+<dialog id="detailDlg">
+  <div class="modal">
+    <h3 id="dName"></h3>
+    <div class="meta" id="dMeta"></div>
+    <p id="dDesc"></p>
+    <div class="actions">
+      <a class="btn btn-wa" id="dWa" href="#" target="_blank" rel="noopener">Hubungi via WhatsApp</a>
+      <button class="btn btn-close" id="dClose" type="button">Tutup</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="addDlg">
+  <div class="modal">
+    <h3>Daftarkan Toko</h3>
+    <div class="meta">Isi data tokomu — langsung tampil di direktori pada perangkat ini.</div>
+    <form id="addForm">
+      <div class="field"><label for="fName">Nama Toko *</label><input id="fName" required maxlength="60" placeholder="cth. Kopi Nusantara"></div>
+      <div class="field"><label for="fCat">Kategori *</label>
+        <select id="fCat" required></select>
+      </div>
+      <div class="field"><label for="fCity">Kota *</label><input id="fCity" required maxlength="40" placeholder="cth. Yogyakarta"></div>
+      <div class="field"><label for="fDesc">Deskripsi *</label><textarea id="fDesc" required rows="3" maxlength="300" placeholder="Jelaskan singkat produk/jasa dan pembayaran Pi yang diterima…"></textarea></div>
+      <div class="field"><label for="fWa">Nomor WhatsApp (opsional)</label><input id="fWa" maxlength="20" placeholder="cth. 081234567890"></div>
+      <div class="actions">
+        <button class="btn" style="background:var(--purple);color:#fff" type="submit">Simpan Toko</button>
+        <button class="btn btn-close" id="aClose" type="button">Batal</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script>
+const CATEGORIES = ["Semua Kategori","Kuliner","Fashion","Elektronik","Kesehatan & Kecantikan","Jasa","Kerajinan","Pertanian","Lainnya"];
+const SEED = [
+  {name:"Kopi Senja Nusantara", cat:"Kuliner", city:"Yogyakarta", desc:"Kedai kopi lokal dengan biji arabika dari petani Jawa. Menerima Pi untuk semua menu minuman dan biji kopi kemasan.", wa:"081234567890", demo:true},
+  {name:"Batik Larasati", cat:"Fashion", city:"Surakarta", desc:"Batik tulis dan cap asli Solo, kemeja, dress, dan kain. Pembayaran Pi diterima untuk pembelian online dan di toko.", wa:"082198765432", demo:true},
+  {name:"Gadget Murah Pi", cat:"Elektronik", city:"Jakarta", desc:"Aksesoris HP, casing, charger, dan earphone. Harga spesial untuk Pioneer yang membayar dengan Pi.", wa:"081387654321", demo:true},
+  {name:"Dapur Bunda Rina", cat:"Kuliner", city:"Bandung", desc:"Catering rumahan dan nasi box untuk acara. Pemesanan H-2, pembayaran Pi diterima penuh atau DP.", wa:"081220011223", demo:true},
+  {name:"Herbal Sehat Alami", cat:"Kesehatan & Kecantikan", city:"Surabaya", desc:"Jamu tradisional, madu murni, dan minyak herbal. Konsultasi gratis, bayar pakai Pi bisa.", wa:"081331122334", demo:true},
+  {name:"Bengkel Motor Jaya", cat:"Jasa", city:"Medan", desc:"Servis motor, ganti oli, dan sparepart. Pioneer dapat diskon jasa bila membayar dengan Pi.", wa:"081260011223", demo:true},
+  {name:"Kerajinan Rotan Bali", cat:"Kerajinan", city:"Denpasar", desc:"Tas, lampu, dan dekorasi rotan handmade dari pengrajin Bali. Kirim se-Indonesia, menerima Pi.", wa:"081805112233", demo:true},
+  {name:"Tani Makmur Store", cat:"Pertanian", city:"Malang", desc:"Bibit, pupuk organik, dan hasil panen segar dari kelompok tani. Transaksi Pi untuk sesama Pioneer.", wa:"081334455667", demo:true},
+  {name:"Salon Cantik Ayu", cat:"Kesehatan & Kecantikan", city:"Semarang", desc:"Potong rambut, creambath, dan perawatan wajah. Booking via WhatsApp, bayar di tempat pakai Pi.", wa:"081575011223", demo:true},
+  {name:"Sewa Kamera LensPro", cat:"Jasa", city:"Jakarta", desc:"Rental kamera, lensa, dan lighting untuk kreator konten. Deposit ringan untuk member Pioneer.", wa:"081906778899", demo:true},
+  {name:"Pempek Palembang Asli", cat:"Kuliner", city:"Palembang", desc:"Pempek kapal selam, lenjer, dan cuko pedas mantap. Frozen pack siap kirim, pembayaran Pi diterima.", wa:"081271011223", demo:true},
+  {name:"Hijab Syari Zahra", cat:"Fashion", city:"Makassar", desc:"Hijab dan gamis syari bahan premium, harga bersahabat. Khusus Pioneer: gratis ongkir se-kota dengan Pi.", wa:"081141122334", demo:true}
+];
+const LS_KEY = "direktoriTokoPi.userStores";
+let userStores = [];
+try { userStores = JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch(e){ userStores = []; }
+let activeCat = "Semua Kategori";
+
+const grid = document.getElementById('grid'), emptyEl = document.getElementById('empty'),
+      countEl = document.getElementById('count'), qEl = document.getElementById('q'),
+      cityEl = document.getElementById('city'), chipsEl = document.getElementById('chips');
+
+function allStores(){ return [...userStores, ...SEED]; }
+function cities(){ return [...new Set(allStores().map(s=>s.city))].sort(); }
+function fillCities(){
+  const cur = cityEl.value;
+  cityEl.innerHTML = '<option value="">Semua Kota</option>' + cities().map(c=>`<option ${c===cur?'selected':''}>${c}</option>`).join('');
+}
+function fillChips(){
+  chipsEl.innerHTML = CATEGORIES.map(c=>`<button type="button" class="chip ${c===activeCat?'active':''}" data-cat="${c}">${c}</button>`).join('');
+  chipsEl.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{ activeCat = ch.dataset.cat; fillChips(); render(); });
+}
+function esc(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function render(){
+  const q = qEl.value.trim().toLowerCase(), city = cityEl.value;
+  const list = allStores().filter(s =>
+    (activeCat==="Semua Kategori" || s.cat===activeCat) &&
+    (!city || s.city===city) &&
+    (!q || (s.name+" "+s.desc+" "+s.cat+" "+s.city).toLowerCase().includes(q))
+  );
+  grid.innerHTML = list.map((s,i)=>`
+    <article class="card" data-idx="${allStores().indexOf(s)}">
+      <div class="top"><h3>${esc(s.name)}</h3>${s.demo?'<span class="badge demo">CONTOH</span>':'<span class="badge">MENERIMA π</span>'}</div>
+      <div class="meta">📍 ${esc(s.city)} · ${esc(s.cat)}</div>
+      <p class="desc">${esc(s.desc)}</p>
+      <span class="cat">${esc(s.cat)}</span>
+    </article>`).join('');
+  emptyEl.hidden = list.length>0;
+  countEl.textContent = list.length + " toko ditemukan";
+  grid.querySelectorAll('.card').forEach(c=>c.onclick=()=>showDetail(allStores()[+c.dataset.idx]));
+}
+const detailDlg = document.getElementById('detailDlg');
+function showDetail(s){
+  document.getElementById('dName').textContent = s.name;
+  document.getElementById('dMeta').textContent = "📍 " + s.city + " · " + s.cat + (s.demo ? " · data contoh" : " · menerima Pi");
+  document.getElementById('dDesc').textContent = s.desc;
+  const wa = document.getElementById('dWa');
+  if (s.wa){ wa.href = "https://wa.me/62" + s.wa.replace(/\D/g,'').replace(/^62/,'').replace(/^0/,''); wa.style.display=''; }
+  else wa.style.display='none';
+  detailDlg.showModal();
+}
+document.getElementById('dClose').onclick = ()=>detailDlg.close();
+
+const addDlg = document.getElementById('addDlg');
+const fCat = document.getElementById('fCat');
+fCat.innerHTML = CATEGORIES.slice(1).map(c=>`<option>${c}</option>`).join('');
+document.getElementById('addBtn').onclick = ()=>addDlg.showModal();
+document.getElementById('aClose').onclick = ()=>addDlg.close();
+document.getElementById('addForm').onsubmit = (e)=>{
+  e.preventDefault();
+  const store = {
+    name: document.getElementById('fName').value.trim(),
+    cat: fCat.value,
+    city: document.getElementById('fCity').value.trim(),
+    desc: document.getElementById('fDesc').value.trim(),
+    wa: document.getElementById('fWa').value.trim()
+  };
+  if(!store.name || !store.city || !store.desc) return;
+  userStores.unshift(store);
+  localStorage.setItem(LS_KEY, JSON.stringify(userStores));
+  addDlg.close(); e.target.reset();
+  activeCat = "Semua Kategori"; qEl.value=""; fillCities(); cityEl.value=""; fillChips(); render();
+};
+
+qEl.addEventListener('input', render);
+cityEl.addEventListener('change', render);
+fillCities(); fillChips(); render();
+
+// --- Pi SDK: login dengan Pi (aktif penuh di dalam Pi Browser) ---
+const piUserEl = document.getElementById('piUser');
+const loginBtn = document.getElementById('loginBtn');
+let piReady = false;
+try {
+  if (window.Pi) { Pi.init({ version: "2.0", sandbox: false }); piReady = true; }
+} catch(e) { piReady = false; }
+loginBtn.onclick = async () => {
+  if (!piReady) { piUserEl.textContent = "Buka lewat Pi Browser untuk masuk dengan akun Pi."; return; }
+  try {
+    const auth = await Pi.authenticate(['username'], (payment)=>{});
+    piUserEl.textContent = "Halo, @" + auth.user.username + " — selamat datang di Direktori Toko Pi!";
+    loginBtn.style.display = 'none';
+  } catch(e) {
+    piUserEl.textContent = "Login Pi belum berhasil. Coba lagi di dalam Pi Browser.";
+  }
+};
+</script>
+</body>
+</html>
